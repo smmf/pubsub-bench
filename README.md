@@ -6,7 +6,8 @@ A micro-benchmark for the performance of a publish/subscribe architecture in a d
 
 Trivial way:
 
-    mvn clean compile exec:java -Dexec.mainClass="bench.pubsub.Bench" -Djava.net.preferIPv4Stack=true
+    mvn compile
+    mvn exec:java -Dexec.mainClass="bench.pubsub.Bench" -Djava.net.preferIPv4Stack=true
     
 It will run a single thread that publishes messages of 100 bytes.  To change
 the defaults use:

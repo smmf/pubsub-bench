@@ -1,5 +1,7 @@
 package bench.pubsub;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -18,6 +20,11 @@ import com.hazelcast.core.MessageListener;
 public class Bench {
 
     private static final Logger logger = LoggerFactory.getLogger(Bench.class);
+
+    static {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        System.setProperty("current.date", dateFormat.format(new Date()));
+    }
 
     public static final String HZL_CONFIG_FILE = "hazelcast.xml";
     public static final String HZL_GROUP_NAME = "PubSubGroup";
