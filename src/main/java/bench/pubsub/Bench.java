@@ -2,7 +2,6 @@ package bench.pubsub;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -31,8 +30,6 @@ public class Bench {
     public static final String HZL_TOPIC_NAME = "PubSubTopic";
 
     public static HazelcastInstance HAZELCAST_INSTANCE;
-
-    public static final ConcurrentLinkedQueue<CustomMessage> receiveQueue = new ConcurrentLinkedQueue<>();
 
     public static final AtomicReference<CustomMessage> incomingMessagesHead = new AtomicReference<CustomMessage>();
 
