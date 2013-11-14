@@ -7,15 +7,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hazelcast.config.ClasspathXmlConfig;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.TopicConfig;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.ITopic;
-import com.hazelcast.core.Message;
-import com.hazelcast.core.MessageListener;
-
 public class Bench {
 
     private static final Logger logger = LoggerFactory.getLogger(Bench.class);
@@ -25,11 +16,16 @@ public class Bench {
         System.setProperty("current.date", dateFormat.format(new Date()));
     }
 
+<<<<<<< HEAD
     public static final String HZL_CONFIG_FILE = "hazelcast.xml";
     public static final String HZL_GROUP_NAME = "PubSubGroup";
     public static final String HZL_TOPIC_NAME = "PubSubTopic";
 
     public static HazelcastInstance HAZELCAST_INSTANCE;
+=======
+    public static MessageSender msgSender;
+    
+>>>>>>> Support ZeroMQ as CommSystem.
 
     public static final AtomicReference<CustomMessage> incomingMessagesHead = new AtomicReference<CustomMessage>();
 
@@ -37,16 +33,15 @@ public class Bench {
 
     public static int nThreads;
     public static int payload; // # of bytes to send in the custom message
+    private static boolean startSequencer = false;
+    private static String commSystemName = HazelcastCommSystem.class.getSimpleName();
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         logger.info("process arguments");
         processArgs(args);
 
         logger.info("booting the communication system");
         bootCommSystem();
-
-        logger.info("register listener for incoming messages");
-        registerTopicListener();
 
         logger.info("spawn worker threads");
         startWork();
@@ -54,68 +49,68 @@ public class Bench {
 
     private static void processArgs(String[] args) {
         if (args.length > 0) {
-            nThreads = Integer.parseInt(args[0]);
+            commSystemName = args[0];
             if (args.length > 1) {
-                payload = Integer.parseInt(args[1]);
+                nThreads = Integer.parseInt(args[1]);
+                if (args.length > 2) {
+                    payload = Integer.parseInt(args[2]);
+                    if (args.length > 3) {
+                        startSequencer = true;
+                    }
+                } else {
+                    payload = 100;
+                }
             } else {
+                nThreads = 1;
                 payload = 100;
             }
-        } else {
-            nThreads = 1;
-            payload = 100;
         }
         logger.info("Running with nThreads={}, payload={}", nThreads, payload);
     }
 
-    private static void bootCommSystem() {
+    private static void bootCommSystem() throws Exception {
         incomingMessagesHead.set(CustomMessage.makeSentinel());
         incomingMessagesTail = getMessageAtHead();
+        
+        String csFullName = "bench.pubsub." + commSystemName;
+        logger.info("Using {}", csFullName);
+        
+        CommSystem commSystem = null;
+        try {
+            commSystem = (CommSystem)Class.forName(csFullName).newInstance();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
 
-        com.hazelcast.config.Config hzlCfg = getHazelcastConfig();
-        HAZELCAST_INSTANCE = Hazelcast.newHazelcastInstance(hzlCfg);
-    }
+        if (startSequencer) {
+            startSequencer();
+        }
+        
+        commSystem.init(new MessageProcessor() {
+                @Override
+                public void process(CustomMessage m) {
+                    CustomMessage currentTail = incomingMessagesTail;
+                    logger.trace("currentTail={} (before enqueue)", incomingMessagesTail.getId());
 
-    private static void registerTopicListener() {
-        ITopic<CustomMessage> topic = HAZELCAST_INSTANCE.getTopic(HZL_TOPIC_NAME);
+                    // this should be running on a single thread, so this CAS should never fail
+                    if (!currentTail.setNext(m)) {
+                        enqueueFailed();
+                    }
 
-        topic.addMessageListener(new MessageListener<CustomMessage>() {
-            @Override
-            public void onMessage(Message<CustomMessage> message) {
-                CustomMessage m = message.getMessageObject();
-
-                CustomMessage currentTail = incomingMessagesTail;
-                logger.trace("currentTail={} (before enqueue)", incomingMessagesTail.getId());
-
-                // this should be running on a single thread, so this CAS should never fail
-                if (!currentTail.setNext(m)) {
-                    enqueueFailed();
+                    // update last known tail
+                    incomingMessagesTail = m;
                 }
+                
+                private void enqueueFailed() throws AssertionError {
+                    String message = "Impossible condition: failed to enqueue commit request";
+                    logger.error(message);
+                    throw new AssertionError(message);
+                }
+            });
 
-                // update last known tail
-                incomingMessagesTail = m;
-            }
-
-            private void enqueueFailed() throws AssertionError {
-                String message = "Impossible condition: failed to enqueue commit request";
-                logger.error(message);
-                throw new AssertionError(message);
-            }
-        });
-    }
-
-    static Config getHazelcastConfig() {
-        System.setProperty("hazelcast.logging.type", "slf4j");
-        com.hazelcast.config.Config hzlCfg = new ClasspathXmlConfig(HZL_CONFIG_FILE);
-        hzlCfg.getGroupConfig().setName(HZL_GROUP_NAME);
-
-        // turn on global ordering for the topic
-        TopicConfig topicConfig = hzlCfg.getTopicConfig(HZL_TOPIC_NAME);
-        topicConfig.setGlobalOrderingEnabled(true);
-        hzlCfg.addTopicConfig(topicConfig);
-
-        topicConfig = hzlCfg.getTopicConfig(HZL_TOPIC_NAME);
-
-        return hzlCfg;
+        msgSender = new MessageSender(commSystem);
+        msgSender.start();
     }
 
     public static CustomMessage getMessageAtHead() {
@@ -123,8 +118,7 @@ public class Bench {
     }
 
     public static void sendMessage(CustomMessage message) {
-        ITopic<CustomMessage> topic = HAZELCAST_INSTANCE.getTopic(HZL_TOPIC_NAME);
-        topic.publish(message);
+        msgSender.sendMessage(message);
     }
 
     /**
@@ -157,4 +151,7 @@ public class Bench {
         }
     }
 
+    private static void startSequencer() {
+        new Thread(new ZeroMQSequencer.Sequencer()).start();
+    }
 }

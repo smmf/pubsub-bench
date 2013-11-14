@@ -30,6 +30,16 @@
     </build>
 
     <repositories>
+      <repository>
+        <id>sonatype-nexus-snapshots</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        <releases>
+          <enabled>false</enabled>
+        </releases>
+        <snapshots>
+          <enabled>true</enabled>
+        </snapshots>
+      </repository>
     </repositories>
 
     <dependencies>
@@ -47,6 +57,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>${version.slf4j.api}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.zeromq</groupId>
+          <artifactId>jeromq</artifactId>
+          <version>0.3.2-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

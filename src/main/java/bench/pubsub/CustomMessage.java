@@ -62,6 +62,10 @@ public class CustomMessage implements DataSerializable, Externalizable {
 
     // serialization code
 
+    public int estimateSizeInBytes() {
+        return 16 + 4 + this.data.length;
+    }
+
     public void writeToDataOutput(DataOutput out) throws IOException {
         writeUUID(out);
 

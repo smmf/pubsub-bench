@@ -12,10 +12,20 @@ Trivial way:
 It will run a single thread that publishes messages of 100 bytes.  To change
 the defaults use:
 
-    -Dexec.args="3 1000"
+    -Dexec.args="NAME-OF-COMM-SYSTEM 3 1000 BOOT-SEQ"
     
-First arg is the number of threads and the second is the message payload in
+Where NAME-OF-COMM-SYSTEM is one of "HazelcastCommSystem" or
+"ZeroMQCommSystem" (the default is the former).
+    
+Second arg is the number of threads and the third is the message payload in
 bytes.
+
+If using ZeroMQ you need a sequencer.
+Either you run it by itself with
+
+    mvn exec:java -Dexec.mainClass="bench.pubsub.ZeroMQSequencer"
+
+Or you need to use the fourth arg when launching one of the nodes.
 
 To adjust the JVM params on can use e.g.:
 
@@ -27,4 +37,4 @@ To start the benchmark without maven the following command may help
     mvn dependency:build-classpath
 
     
-    
+
