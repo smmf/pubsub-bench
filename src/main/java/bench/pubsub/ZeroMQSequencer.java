@@ -25,11 +25,12 @@ public class ZeroMQSequencer {
             ZMQ.Socket incoming = context.socket(ZMQ.PULL);
             incoming.bind("tcp://*:5557");
 
-            while (! Thread.currentThread().isInterrupted()) {
-                byte[] data = incoming.recv(0);
-                //System.out.printf("Received message with %d bytes\n", data.length);
-                publisher.send(data, 0);
-            }
+            ZMQ.proxy(incoming, publisher, null);
+            // while (! Thread.currentThread().isInterrupted()) {
+            //     byte[] data = incoming.recv(0);
+            //     //System.out.printf("Received message with %d bytes\n", data.length);
+            //     publisher.send(data, 0);
+            // }
 
             publisher.close();
             incoming.close();
