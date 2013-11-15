@@ -16,16 +16,7 @@ public class Bench {
         System.setProperty("current.date", dateFormat.format(new Date()));
     }
 
-<<<<<<< HEAD
-    public static final String HZL_CONFIG_FILE = "hazelcast.xml";
-    public static final String HZL_GROUP_NAME = "PubSubGroup";
-    public static final String HZL_TOPIC_NAME = "PubSubTopic";
-
-    public static HazelcastInstance HAZELCAST_INSTANCE;
-=======
     public static MessageSender msgSender;
-    
->>>>>>> Support ZeroMQ as CommSystem.
 
     public static final AtomicReference<CustomMessage> incomingMessagesHead = new AtomicReference<CustomMessage>();
 
@@ -71,13 +62,13 @@ public class Bench {
     private static void bootCommSystem() throws Exception {
         incomingMessagesHead.set(CustomMessage.makeSentinel());
         incomingMessagesTail = getMessageAtHead();
-        
+
         String csFullName = "bench.pubsub." + commSystemName;
         logger.info("Using {}", csFullName);
-        
+
         CommSystem commSystem = null;
         try {
-            commSystem = (CommSystem)Class.forName(csFullName).newInstance();
+            commSystem = (CommSystem) Class.forName(csFullName).newInstance();
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -86,28 +77,28 @@ public class Bench {
         if (startSequencer) {
             startSequencer();
         }
-        
+
         commSystem.init(new MessageProcessor() {
-                @Override
-                public void process(CustomMessage m) {
-                    CustomMessage currentTail = incomingMessagesTail;
-                    logger.trace("currentTail={} (before enqueue)", incomingMessagesTail.getId());
+            @Override
+            public void process(CustomMessage m) {
+                CustomMessage currentTail = incomingMessagesTail;
+                logger.trace("currentTail={} (before enqueue)", incomingMessagesTail.getId());
 
-                    // this should be running on a single thread, so this CAS should never fail
-                    if (!currentTail.setNext(m)) {
-                        enqueueFailed();
-                    }
+                // this should be running on a single thread, so this CAS should never fail
+                if (!currentTail.setNext(m)) {
+                    enqueueFailed();
+                }
 
-                    // update last known tail
-                    incomingMessagesTail = m;
-                }
-                
-                private void enqueueFailed() throws AssertionError {
-                    String message = "Impossible condition: failed to enqueue commit request";
-                    logger.error(message);
-                    throw new AssertionError(message);
-                }
-            });
+                // update last known tail
+                incomingMessagesTail = m;
+            }
+
+            private void enqueueFailed() throws AssertionError {
+                String message = "Impossible condition: failed to enqueue commit request";
+                logger.error(message);
+                throw new AssertionError(message);
+            }
+        });
 
         msgSender = new MessageSender(commSystem);
         msgSender.start();
