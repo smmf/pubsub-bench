@@ -8,27 +8,29 @@ import org.zeromq.ZMQ;
  */
 
 public class ZeroMQSequencer {
-    
-    public static void main (String[] args) throws Exception {
+
+    public static void main(String[] args) throws Exception {
         new Thread(new Sequencer()).start();
     }
 
     public static class Sequencer implements Runnable {
+        @Override
         public void run() {
             //  Prepare our context and publisher
             ZMQ.Context context = ZMQ.context(2);
-            
 
             ZMQ.Socket publisher = context.socket(ZMQ.PUB);
             publisher.setAffinity(1);
-            //publisher.setSndHWM(100000);
+            publisher.setHWM(0);
             publisher.bind("tcp://*:5556");
             //publisher.bind("ipc://weather");
 
             ZMQ.Socket incoming = context.socket(ZMQ.PULL);
-            //incoming.setRcvHWM(100000);
+            incoming.setHWM(0);
             incoming.setAffinity(2);
             incoming.bind("tcp://*:5557");
+
+            System.out.println("Sequencer is alive");
 
             ZMQ.proxy(incoming, publisher, null);
             // while (! Thread.currentThread().isInterrupted()) {
