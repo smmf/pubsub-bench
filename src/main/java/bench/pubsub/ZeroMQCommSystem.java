@@ -19,8 +19,8 @@ public class ZeroMQCommSystem implements CommSystem {
 
         request = context.socket(ZMQ.PUSH);
         request.connect("tcp://localhost:5557");
-
-        new Thread() {
+        
+        Thread t = new Thread() {
             public void run() {
                 while (! Thread.currentThread().isInterrupted()) {
                     byte[] data = subscriber.recv(0);
@@ -30,7 +30,9 @@ public class ZeroMQCommSystem implements CommSystem {
                     msgProc.process(msg);
                 }
             }
-        }.start();
+        };
+        t.setPriority(Thread.MAX_PRIORITY);
+        t.start();
 
         // HACK!  Just to see if the connection to the publisher happens before continuing...
         try {
@@ -42,7 +44,8 @@ public class ZeroMQCommSystem implements CommSystem {
 
     public void sendMessage(byte[] data) {
         //System.out.printf("I'm sending a message with %d bytes\n", msg.data.length);
-        request.send(data, 0);
+        //request.send(data, 0);
+        request.send(data, ZMQ.DONTWAIT);
         //System.out.println("DONE");
     }
 }

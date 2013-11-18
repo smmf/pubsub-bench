@@ -92,7 +92,13 @@ public class PubSubWorker implements Runnable {
     protected static CustomMessage waitForNextMessage(CustomMessage lastSeenMessage) {
         CustomMessage next = null;
         while ((next = lastSeenMessage.getNext()) == null) {
+            Thread.yield();
             // empty
+            // try {
+            //     Thread.sleep(1);
+            // } catch (Exception e) {
+            //     // nop
+            // }
         }
 
         Bench.tryToRemoveMessage(lastSeenMessage);

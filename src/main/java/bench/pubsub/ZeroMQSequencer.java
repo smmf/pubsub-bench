@@ -16,13 +16,18 @@ public class ZeroMQSequencer {
     public static class Sequencer implements Runnable {
         public void run() {
             //  Prepare our context and publisher
-            ZMQ.Context context = ZMQ.context(1);
+            ZMQ.Context context = ZMQ.context(2);
+            
 
             ZMQ.Socket publisher = context.socket(ZMQ.PUB);
+            publisher.setAffinity(1);
+            //publisher.setSndHWM(100000);
             publisher.bind("tcp://*:5556");
             //publisher.bind("ipc://weather");
 
             ZMQ.Socket incoming = context.socket(ZMQ.PULL);
+            //incoming.setRcvHWM(100000);
+            incoming.setAffinity(2);
             incoming.bind("tcp://*:5557");
 
             ZMQ.proxy(incoming, publisher, null);
